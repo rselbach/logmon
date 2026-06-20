@@ -4,12 +4,12 @@
   </div>
 
   <div class="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4">
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3 flex-wrap">
       <%= status_badge(@log.status) %>
-      <span class="text-sm text-slate-300 font-mono"><%= @log.method %> <%= @log.host %><%= @log.uri %></span>
+      <span class="text-sm text-slate-300 font-mono break-all"><%= @log.method %> <%= @log.host %><%= @log.uri %></span>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <%= detail_row("Timestamp", @log.timestamp&.iso8601) %>
       <%= detail_row("Remote IP", @log.remote_ip) %>
       <%= detail_row("Client IP", @log.client_ip) %>

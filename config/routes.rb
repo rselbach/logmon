@@ -10,6 +10,13 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   root "dashboard#index"
+
+  get "/login", to: "sessions#new", as: :login
+  get "/auth/github/callback", to: "sessions#callback", as: :github_callback
+  match "/auth/apple/callback", to: "sessions#apple_callback", via: [:get, :post], as: :apple_callback
+  get "/auth/failure", to: "sessions#failure", as: :auth_failure
+  delete "/logout", to: "sessions#destroy", as: :logout
+
   resources :access_logs, only: %i[index show]
   resources :error_logs, only: %i[index show]
 end

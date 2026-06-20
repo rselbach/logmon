@@ -22,34 +22,77 @@
   </head>
 
   <body class="h-full">
+    <% if logged_in? %>
+      <header class="lg:hidden fixed top-0 inset-x-0 z-30 bg-slate-900 border-b border-slate-800 flex items-center px-4 h-14">
+        <button type="button" onclick="toggleSidebar()" class="text-slate-400 hover:text-white p-2 -ml-2" aria-label="Toggle menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <h1 class="text-lg font-bold text-white flex items-center gap-2 mx-auto">
+          <span class="text-emerald-400">&#9679;</span> Logmon
+        </h1>
+        <div class="w-10"></div>
+      </header>
+
+      <div id="sidebar-backdrop" class="lg:hidden fixed inset-0 bg-black/50 z-30 hidden" onclick="toggleSidebar()"></div>
+    <% end %>
+
     <div class="min-h-full flex">
-      <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
-        <div class="p-6 border-b border-slate-800">
-          <h1 class="text-xl font-bold text-white flex items-center gap-2">
-            <span class="text-emerald-400">&#9679;</span> Logmon
-          </h1>
-          <p class="text-xs text-slate-500 mt-1">Caddy Log Monitor</p>
-        </div>
+      <% if logged_in? %>
+        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 -translate-x-full lg:translate-x-0 transition-transform duration-200">
+          <div class="p-6 border-b border-slate-800">
+            <h1 class="text-xl font-bold text-white flex items-center gap-2">
+              <span class="text-emerald-400">&#9679;</span> Logmon
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">Caddy Log Monitor</p>
+          </div>
 
-        <nav class="flex-1 p-4 space-y-1">
-          <%= nav_link "Dashboard", root_path, active: controller_name == "dashboard" %>
-          <%= nav_link "Access Logs", access_logs_path, active: controller_name == "access_logs" %>
-          <%= nav_link "Error Logs", error_logs_path, active: controller_name == "error_logs" %>
-        </nav>
+          <nav class="flex-1 p-4 space-y-1">
+            <%= nav_link "Dashboard", root_path, active: controller_name == "dashboard" %>
+            <%= nav_link "Access Logs", access_logs_path, active: controller_name == "access_logs" %>
+            <%= nav_link "Error Logs", error_logs_path, active: controller_name == "error_logs" %>
+          </nav>
 
-        <div class="p-4 border-t border-slate-800">
-          <p class="text-xs text-slate-500">
-            <%= AccessLog.count %> access &middot;
-            <%= ErrorLog.count %> errors
-          </p>
-        </div>
-      </aside>
+          <div class="p-4 border-t border-slate-800 space-y-2">
+            <p class="text-xs text-slate-400 truncate" title="<%= current_user_email %>">
+              <%= current_user_email %>
+            </p>
+            <p class="text-xs text-slate-500">
+              <%= AccessLog.count %> access &middot;
+              <%= ErrorLog.count %> errors
+            </p>
+            <%= button_to "Sign out", logout_path, method: :delete, form: { class: "inline" }, class: "text-xs text-slate-400 hover:text-red-400 transition-colors cursor-pointer" %>
+          </div>
+        </aside>
+      <% end %>
 
       <main class="flex-1 overflow-auto">
-        <div class="max-w-7xl mx-auto px-8 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-8 py-8 <% if logged_in? %>mt-14 lg:mt-0<% end %>">
+          <% if flash[:alert] %>
+            <div class="mb-6 rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-300"><%= flash[:alert] %></div>
+          <% end %>
+          <% if flash[:notice] %>
+            <div class="mb-6 rounded-lg bg-emerald-950 border border-emerald-800 px-4 py-3 text-sm text-emerald-300"><%= flash[:notice] %></div>
+          <% end %>
           <%= yield %>
         </div>
       </main>
     </div>
+
+    <% if logged_in? %>
+      <script>
+        function toggleSidebar() {
+          document.getElementById('sidebar').classList.toggle('-translate-x-full');
+          document.getElementById('sidebar-backdrop').classList.toggle('hidden');
+        }
+        document.addEventListener('turbo:visit', function() {
+          var sb = document.getElementById('sidebar');
+          var bd = document.getElementById('sidebar-backdrop');
+          if (sb) sb.classList.add('-translate-x-full');
+          if (bd) bd.classList.add('hidden');
+        });
+      </script>
+    <% end %>
   </body>
 </html>

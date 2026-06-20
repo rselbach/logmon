@@ -4,14 +4,14 @@
     <p class="text-sm text-slate-500 mt-1">Overview of Caddy access and error logs</p>
   </div>
 
-  <div class="grid grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <%= stat_card("Total Requests", @total_requests, "text-emerald-400") %>
     <%= stat_card("Total Errors", @total_errors, "text-red-400") %>
     <%= stat_card("Error Rate", "#{@error_rate}%", "text-amber-400") %>
     <%= stat_card("Unique IPs", AccessLog.distinct.count(:remote_ip), "text-blue-400") %>
   </div>
 
-  <div class="grid grid-cols-2 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
       <h2 class="text-sm font-medium text-slate-400 mb-4">Requests (last 24 hours)</h2>
       <canvas id="requestsChart" height="120"></canvas>
@@ -23,7 +23,7 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-2 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
       <h2 class="text-sm font-medium text-slate-400 mb-4">Browsers</h2>
       <canvas id="browserChart" height="120"></canvas>
@@ -35,7 +35,7 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
     <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
       <h2 class="text-sm font-medium text-slate-400 mb-4">Top Hosts</h2>
       <div class="space-y-2">
