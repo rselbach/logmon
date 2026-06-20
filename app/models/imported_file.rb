@@ -1,0 +1,2 @@
+class ImportedFile < ApplicationRecord
+end

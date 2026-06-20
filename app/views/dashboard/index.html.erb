@@ -1,0 +1,192 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-white">Dashboard</h1>
+    <p class="text-sm text-slate-500 mt-1">Overview of Caddy access and error logs</p>
+  </div>
+
+  <div class="grid grid-cols-4 gap-4">
+    <%= stat_card("Total Requests", @total_requests, "text-emerald-400") %>
+    <%= stat_card("Total Errors", @total_errors, "text-red-400") %>
+    <%= stat_card("Error Rate", "#{@error_rate}%", "text-amber-400") %>
+    <%= stat_card("Unique IPs", AccessLog.distinct.count(:remote_ip), "text-blue-400") %>
+  </div>
+
+  <div class="grid grid-cols-2 gap-6">
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+      <h2 class="text-sm font-medium text-slate-400 mb-4">Requests (last 24 hours)</h2>
+      <canvas id="requestsChart" height="120"></canvas>
+    </div>
+
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+      <h2 class="text-sm font-medium text-slate-400 mb-4">Status Code Distribution</h2>
+      <canvas id="statusChart" height="120"></canvas>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-6">
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+      <h2 class="text-sm font-medium text-slate-400 mb-4">Browsers</h2>
+      <canvas id="browserChart" height="120"></canvas>
+    </div>
+
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+      <h2 class="text-sm font-medium text-slate-400 mb-4">Operating Systems</h2>
+      <canvas id="osChart" height="120"></canvas>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-6">
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+      <h2 class="text-sm font-medium text-slate-400 mb-4">Top Hosts</h2>
+      <div class="space-y-2">
+        <% @top_hosts.each do |host, count| %>
+          <div class="flex items-center justify-between">
+            <%= link_to host, access_logs_path(host: host), class: "text-sm text-slate-300 hover:text-emerald-400 truncate" %>
+            <span class="text-sm text-slate-500 ml-2 shrink-0"><%= count %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+      <h2 class="text-sm font-medium text-slate-400 mb-4">Top IPs</h2>
+      <div class="space-y-2">
+        <% @top_ips.each do |ip, count| %>
+          <div class="flex items-center justify-between">
+            <%= link_to ip, access_logs_path(ip: ip), class: "text-sm text-slate-300 hover:text-emerald-400 font-mono" %>
+            <span class="text-sm text-slate-500 ml-2 shrink-0"><%= count %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+      <h2 class="text-sm font-medium text-slate-400 mb-4">Top Paths</h2>
+      <div class="space-y-2">
+        <% @top_paths.each do |path, count| %>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-300 truncate font-mono" title="<%= path %>"><%= path.truncate(40) %></span>
+            <span class="text-sm text-slate-500 ml-2 shrink-0"><%= count %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+    <h2 class="text-sm font-medium text-slate-400 mb-4">Top User Agents</h2>
+    <div class="space-y-2">
+      <% @top_user_agents.each do |ua, count| %>
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-slate-300 truncate" title="<%= ua %>"><%= ua.truncate(80) %></span>
+          <span class="text-sm text-slate-500 ml-2 shrink-0"><%= count %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="bg-slate-900 rounded-xl border border-slate-800 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-medium text-slate-400">Recent Errors</h2>
+      <%= link_to "View all", error_logs_path, class: "text-xs text-emerald-400 hover:text-emerald-300" %>
+    </div>
+    <div class="space-y-2">
+      <% @recent_errors.each do |error| %>
+        <div class="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
+          <div class="flex items-center gap-3 min-w-0">
+            <%= status_badge(error.status) %>
+            <span class="text-sm text-slate-300 truncate"><%= error.message %></span>
+          </div>
+          <span class="text-xs text-slate-500 shrink-0 ml-4"><%= error.host %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  const requestsData = <%= raw @requests_per_hour.to_json %>;
+  const statusData = <%= raw @status_counts.to_h.to_json %>;
+
+  const ctx1 = document.getElementById('requestsChart');
+  if (ctx1) {
+    new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: Object.keys(requestsData),
+        datasets: [{
+          data: Object.values(requestsData),
+          borderColor: '#34d399',
+          backgroundColor: 'rgba(52, 211, 153, 0.1)',
+          fill: true,
+          tension: 0.3,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#64748b', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } },
+          y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+        }
+      }
+    });
+  }
+
+  const ctx2 = document.getElementById('statusChart');
+  if (ctx2) {
+    const colors = Object.keys(statusData).map(s => {
+      const code = parseInt(s);
+      if (code >= 200 && code < 300) return '#34d399';
+      if (code >= 300 && code < 400) return '#60a5fa';
+      if (code >= 400 && code < 500) return '#fbbf24';
+      if (code >= 500) return '#f87171';
+      return '#94a3b8';
+    });
+    new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(statusData),
+        datasets: [{ data: Object.values(statusData), backgroundColor: colors }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 12 } } } }
+      }
+    });
+  }
+
+  const browserData = <%= raw @browser_counts.to_h.to_json %>;
+  const browserColors = { Firefox: '#f97316', Chrome: '#60a5fa', Safari: '#34d399', Edge: '#3b82f6', Opera: '#f87171', Other: '#94a3b8', Unknown: '#475569' };
+  const ctx3 = document.getElementById('browserChart');
+  if (ctx3) {
+    new Chart(ctx3, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(browserData),
+        datasets: [{ data: Object.values(browserData), backgroundColor: Object.keys(browserData).map(k => browserColors[k] || '#94a3b8') }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 12 } } } }
+      }
+    });
+  }
+
+  const osData = <%= raw @os_counts.to_h.to_json %>;
+  const osColors = { Windows: '#60a5fa', macOS: '#94a3b8', Android: '#34d399', iOS: '#a78bfa', Linux: '#fbbf24', ChromeOS: '#f87171', Other: '#64748b', Unknown: '#475569' };
+  const ctx4 = document.getElementById('osChart');
+  if (ctx4) {
+    new Chart(ctx4, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(osData),
+        datasets: [{ data: Object.values(osData), backgroundColor: Object.keys(osData).map(k => osColors[k] || '#94a3b8') }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 12 } } } }
+      }
+    });
+  }
+</script>

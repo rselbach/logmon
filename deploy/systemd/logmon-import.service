@@ -1,0 +1,16 @@
+[Unit]
+Description=Logmon log importer (one-shot)
+After=logmon-web.service
+
+[Service]
+Type=oneshot
+User=roberto
+WorkingDirectory=/opt/logmon
+EnvironmentFile=/etc/logmon/logmon.env
+Environment=PATH=/home/roberto/.rbenv/shims:/home/roberto/.rbenv/bin:/usr/local/bin:/usr/bin:/bin
+
+ExecStart=/home/roberto/.rbenv/shims/bundle exec rails logs:import
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=logmon-import

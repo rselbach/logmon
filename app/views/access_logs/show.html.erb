@@ -1,0 +1,28 @@
+<div class="space-y-6">
+  <div>
+    <%= link_to "&#8592; Back to access logs".html_safe, access_logs_path, class: "text-sm text-slate-400 hover:text-emerald-400" %>
+  </div>
+
+  <div class="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <%= status_badge(@log.status) %>
+      <span class="text-sm text-slate-300 font-mono"><%= @log.method %> <%= @log.host %><%= @log.uri %></span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <%= detail_row("Timestamp", @log.timestamp&.iso8601) %>
+      <%= detail_row("Remote IP", @log.remote_ip) %>
+      <%= detail_row("Client IP", @log.client_ip) %>
+      <%= detail_row("Protocol", @log.proto) %>
+      <%= detail_row("Size", @log.size&.positive? ? number_to_human_size(@log.size) : nil) %>
+      <%= detail_row("Bytes Read", @log.bytes_read&.positive? ? number_to_human_size(@log.bytes_read) : nil) %>
+      <%= detail_row("Duration", @log.duration ? "#{(@log.duration * 1000).round(2)}ms" : nil) %>
+      <%= detail_row("Request ID", @log.request_id) %>
+      <%= detail_row("TLS Version", @log.tls_version) %>
+      <%= detail_row("TLS Proto", @log.tls_proto) %>
+      <%= detail_row("Server Name", @log.server_name) %>
+      <%= detail_row("User Agent", @log.user_agent) %>
+      <%= detail_row("Referer", @log.referer) %>
+    </div>
+  </div>
+</div>

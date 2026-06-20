@@ -1,0 +1,55 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-white">Error Logs</h1>
+    <p class="text-sm text-slate-500 mt-1"><%= @pagy.count %> total<%= " (showing #{@logs.size})" if @logs.size < @pagy.count %></p>
+  </div>
+
+  <%= form_with url: error_logs_path, method: :get, class: "flex flex-wrap gap-3", data: { turbo_frame: "logs" } do |f| %>
+    <%= f.text_field :q, value: params[:q], placeholder: "Search message, host, IP, URI...",
+        class: "flex-1 min-w-64 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" %>
+
+    <%= f.select :status, options_for_select([["All Status", ""]] + @statuses.map { |s| [s, s] }, params[:status]),
+        {}, class: "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500" %>
+
+    <%= f.select :host, options_for_select([["All Hosts", ""]] + @hosts.map { |h| [h, h] }, params[:host]),
+        {}, class: "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500" %>
+
+    <%= f.submit "Filter", class: "bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" %>
+    <%= link_to "Clear", error_logs_path, class: "px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition-colors" %>
+  <% end %>
+
+  <%= turbo_frame_tag "logs" do %>
+    <div class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-slate-800 text-left">
+            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Time</th>
+            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Host</th>
+            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Message</th>
+            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">URI</th>
+            <th class="px-4 py-3 text-xs font-medium text-slate-500 uppercase">IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @logs.each do |log| %>
+            <tr class="border-b border-slate-800 last:border-0 hover:bg-slate-800/50 transition-colors">
+              <td class="px-4 py-3 text-xs text-slate-400 whitespace-nowrap font-mono">
+                <%= link_to log.timestamp&.strftime("%H:%M:%S"), error_log_path(log), class: "hover:text-emerald-400" %>
+              </td>
+              <td class="px-4 py-3"><%= status_badge(log.status) %></td>
+              <td class="px-4 py-3 text-xs text-slate-300"><%= log.host %></td>
+              <td class="px-4 py-3 text-xs text-slate-300 max-w-md truncate" title="<%= log.message %>"><%= log.message %></td>
+              <td class="px-4 py-3 text-xs text-slate-300 font-mono max-w-xs truncate" title="<%= log.uri %>"><%= log.uri %></td>
+              <td class="px-4 py-3 text-xs text-slate-400 font-mono"><%= log.remote_ip %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-4">
+      <%== @pagy.series_nav if @pagy.pages > 1 %>
+    </div>
+  <% end %>
+</div>
