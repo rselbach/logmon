@@ -15,4 +15,19 @@ class DashboardController < ApplicationController
     @requests_per_hour = AccessLog.requests_per_hour(24)
     @recent_errors = ErrorLog.recent.limit(10)
   end
+
+  def refresh
+    CaddyLogImporterJob.perform_later
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "refresh_button",
+          partial: "dashboard/refresh_button",
+          locals: { importing: true }
+        )
+      end
+      format.html { redirect_to root_path, notice: "Import queued." }
+    end
+  end
 end

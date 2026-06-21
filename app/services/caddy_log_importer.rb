@@ -10,6 +10,12 @@ class CaddyLogImporter
     new(dir).import
   end
 
+  # Directory of Caddy logs. Shared by the rake task, the systemd timer, and
+  # the dashboard refresh job so they never drift on the default.
+  def self.logs_dir
+    ENV["CADDY_LOGS_DIR"] || File.expand_path("../caddy", Rails.root)
+  end
+
   def self.reset
     AccessLog.delete_all
     ErrorLog.delete_all

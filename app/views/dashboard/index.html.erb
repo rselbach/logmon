@@ -1,7 +1,12 @@
 <div class="space-y-6">
-  <div>
-    <h1 class="text-2xl font-bold text-white">Dashboard</h1>
-    <p class="text-sm text-slate-500 mt-1">Overview of Caddy access and error logs</p>
+  <%= turbo_stream_from "dashboard" %>
+
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Dashboard</h1>
+      <p class="text-sm text-slate-500 mt-1">Overview of Caddy access and error logs</p>
+    </div>
+    <%= render "refresh_button", importing: false %>
   </div>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -104,89 +109,11 @@
   </div>
 </div>
 
-<script>
-  const requestsData = <%= raw @requests_per_hour.to_json %>;
-  const statusData = <%= raw @status_counts.to_h.to_json %>;
-
-  const ctx1 = document.getElementById('requestsChart');
-  if (ctx1) {
-    new Chart(ctx1, {
-      type: 'line',
-      data: {
-        labels: Object.keys(requestsData),
-        datasets: [{
-          data: Object.values(requestsData),
-          borderColor: '#34d399',
-          backgroundColor: 'rgba(52, 211, 153, 0.1)',
-          fill: true,
-          tension: 0.3,
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: '#64748b', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } },
-          y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
-        }
-      }
-    });
-  }
-
-  const ctx2 = document.getElementById('statusChart');
-  if (ctx2) {
-    const colors = Object.keys(statusData).map(s => {
-      const code = parseInt(s);
-      if (code >= 200 && code < 300) return '#34d399';
-      if (code >= 300 && code < 400) return '#60a5fa';
-      if (code >= 400 && code < 500) return '#fbbf24';
-      if (code >= 500) return '#f87171';
-      return '#94a3b8';
-    });
-    new Chart(ctx2, {
-      type: 'doughnut',
-      data: {
-        labels: Object.keys(statusData),
-        datasets: [{ data: Object.values(statusData), backgroundColor: colors }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 12 } } } }
-      }
-    });
-  }
-
-  const browserData = <%= raw @browser_counts.to_h.to_json %>;
-  const browserColors = { Firefox: '#f97316', Chrome: '#60a5fa', Safari: '#34d399', Edge: '#3b82f6', Opera: '#f87171', Other: '#94a3b8', Unknown: '#475569' };
-  const ctx3 = document.getElementById('browserChart');
-  if (ctx3) {
-    new Chart(ctx3, {
-      type: 'doughnut',
-      data: {
-        labels: Object.keys(browserData),
-        datasets: [{ data: Object.values(browserData), backgroundColor: Object.keys(browserData).map(k => browserColors[k] || '#94a3b8') }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 12 } } } }
-      }
-    });
-  }
-
-  const osData = <%= raw @os_counts.to_h.to_json %>;
-  const osColors = { Windows: '#60a5fa', macOS: '#94a3b8', Android: '#34d399', iOS: '#a78bfa', Linux: '#fbbf24', ChromeOS: '#f87171', Other: '#64748b', Unknown: '#475569' };
-  const ctx4 = document.getElementById('osChart');
-  if (ctx4) {
-    new Chart(ctx4, {
-      type: 'doughnut',
-      data: {
-        labels: Object.keys(osData),
-        datasets: [{ data: Object.values(osData), backgroundColor: Object.keys(osData).map(k => osColors[k] || '#94a3b8') }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 12 } } } }
-      }
-    });
-  }
+<script type="application/json" id="dashboard-data">
+<%= {
+  requests_per_hour: @requests_per_hour.to_h,
+  status_counts: @status_counts.to_h,
+  browser_counts: @browser_counts.to_h,
+  os_counts: @os_counts.to_h
+}.to_json %>
 </script>

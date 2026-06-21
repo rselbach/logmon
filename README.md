@@ -9,6 +9,7 @@ Built with Rails 8, SQLite, Tailwind CSS, and Turbo.
 - **Dashboard** — total requests, error rate, status code breakdown, top hosts / IPs / paths / user agents, browser & OS distribution, requests-per-hour chart.
 - **Access logs** — paginated list with search and filters (status, method, host, IP); per-request detail view.
 - **Error logs** — same treatment for Caddy's error log stream.
+- **Manual refresh** — a Refresh button on the dashboard enqueues an immediate import (instead of waiting for the periodic timer) and live-updates the page when it finishes.
 - **Incremental imports** — gzipped rotated logs are imported once; active `.log` files are tailed by byte offset, so re-running the importer only pulls new data.
 - **Auth** — sign in with GitHub or Apple, gated by an email allowlist.
 
@@ -69,7 +70,7 @@ Two options are included.
 
 Unit files and a timer live in `deploy/systemd/`. The import timer runs `rails logs:import` every 5 minutes; the web service runs Puma.
 
-1. Copy `deploy/systemd/logmon.env` to `/etc/logmon/logmon.env` and fill in `CADDY_LOGS_DIR` and auth vars.
+1. Copy `deploy/systemd/logmon.env` to `/etc/logmon/logmon.env` and fill in `CADDY_LOGS_DIR` and auth vars. The template already sets `SOLID_QUEUE_IN_PUMA=1`, which runs the Solid Queue supervisor inside Puma so the dashboard Refresh button (and any Active Job) is processed — leave it on for single-server deployments.
 2. Install `logmon-web.service`, `logmon-import.service`, and `logmon-import.timer`.
 3. Enable `logmon-web` and `logmon-import.timer`.
 

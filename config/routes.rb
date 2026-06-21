@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   root "dashboard#index"
+  post "dashboard/refresh", to: "dashboard#refresh", as: :refresh_dashboard
 
   get "/login", to: "sessions#new", as: :login
   get "/auth/github/callback", to: "sessions#callback", as: :github_callback

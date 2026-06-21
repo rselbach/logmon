@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_20_141431) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_21_110047) do
   create_table "access_logs", force: :cascade do |t|
     t.integer "bytes_read"
     t.string "client_ip"
@@ -57,6 +57,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_141431) do
     t.index ["remote_ip"], name: "index_error_logs_on_remote_ip"
     t.index ["status"], name: "index_error_logs_on_status"
     t.index ["timestamp"], name: "index_error_logs_on_timestamp"
+  end
+
+  create_table "import_locks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "locked_at"
+    t.string "state", default: "idle", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "imported_files", force: :cascade do |t|
