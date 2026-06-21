@@ -74,7 +74,12 @@ class CaddyLogImporter
     offset = record.byte_offset
 
     file_size = File.size(path)
-    return if offset >= file_size
+    if offset > file_size
+      record.update!(byte_offset: 0)
+      offset = 0
+    end
+
+    return if offset == file_size
 
     is_error = File.basename(path).include?("error")
     batch = []

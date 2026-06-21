@@ -110,10 +110,10 @@
 </div>
 
 <script type="application/json" id="dashboard-data">
-<%= {
+<%= raw json_escape({
   requests_per_hour: @requests_per_hour.to_h,
   status_counts: @status_counts.to_h,
   browser_counts: @browser_counts.to_h,
   os_counts: @os_counts.to_h
-}.to_json %>
+}.to_json) %>
 </script>
