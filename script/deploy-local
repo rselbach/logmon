@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# Build this checkout into the local Docker image used by systemd, then restart
+# the local Logmon service and wait for its health check to pass.
+
+set -euo pipefail
+
+readonly IMAGE_NAME="${IMAGE_NAME:-logmon}"
+readonly SERVICE_NAME="${SERVICE_NAME:-logmon-web.service}"
+readonly HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:8080/up}"
+readonly HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-60}"
+
+deploy_tag=""
+health_error_file=""
+rollback_tag=""
+sudo_cmd=()
+
+log() {
+  printf '==> %s\n' "$*"
+}
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+cleanup() {
+  if [[ -n "${health_error_file}" ]]; then
+    rm -f "${health_error_file}"
+  fi
+}
+
+require_command() {
+  command -v "$1" >/dev/null || die "missing required command: $1"
+}
+
+run_sudo() {
+  "${sudo_cmd[@]}" "$@"
+}
+
+app_root() {
+  local script_dir
+
+  script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+  cd -- "${script_dir}/.." && pwd
+}
+
+set_sudo_command() {
+  if (( EUID == 0 )); then
+    sudo_cmd=()
+    return
+  fi
+
+  require_command sudo
+  sudo_cmd=(sudo)
+  log "Refreshing sudo credentials"
+  sudo -v
+}
+
+set_deploy_tag() {
+  local git_status
+  local short_sha
+  local timestamp
+
+  short_sha="$(git rev-parse --short=12 HEAD)"
+  git_status="$(git status --porcelain)"
+
+  if [[ -z "${git_status}" ]]; then
+    deploy_tag="${short_sha}"
+    return
+  fi
+
+  timestamp="$(date -u +%Y%m%d%H%M%S)"
+  deploy_tag="${short_sha}-dirty-${timestamp}"
+  log "Worktree has uncommitted changes; building the current checkout"
+}
+
+tag_current_image_for_rollback() {
+  local latest_image
+  local timestamp
+
+  latest_image="${IMAGE_NAME}:latest"
+  timestamp="$(date -u +%Y%m%d%H%M%S)"
+  rollback_tag="rollback-${timestamp}"
+
+  if ! run_sudo docker image inspect "${latest_image}" >/dev/null 2>&1; then
+    rollback_tag=""
+    log "No existing ${IMAGE_NAME}:latest image found; skipping rollback tag"
+    return
+  fi
+
+  log "Tagging current image as ${IMAGE_NAME}:${rollback_tag}"
+  run_sudo docker tag "${latest_image}" "${IMAGE_NAME}:${rollback_tag}"
+}
+
+build_image() {
+  log "Building ${IMAGE_NAME}:${deploy_tag}"
+  run_sudo docker build -t "${IMAGE_NAME}:${deploy_tag}" .
+}
+
+activate_image() {
+  tag_current_image_for_rollback
+
+  log "Tagging ${IMAGE_NAME}:${deploy_tag} as ${IMAGE_NAME}:latest"
+  run_sudo docker tag "${IMAGE_NAME}:${deploy_tag}" "${IMAGE_NAME}:latest"
+}
+
+restart_service() {
+  log "Restarting ${SERVICE_NAME}"
+  run_sudo systemctl restart "${SERVICE_NAME}"
+}
+
+wait_for_health() {
+  local deadline
+
+  deadline=$((SECONDS + HEALTH_TIMEOUT_SECONDS))
+  health_error_file="$(mktemp)"
+
+  log "Waiting for ${HEALTH_URL}"
+
+  while (( SECONDS < deadline )); do
+    if curl -fsS "${HEALTH_URL}" >/dev/null 2>"${health_error_file}"; then
+      log "Health check passed"
+      return
+    fi
+
+    sleep 2
+  done
+
+  if [[ -s "${health_error_file}" ]]; then
+    cat "${health_error_file}" >&2
+  fi
+
+  if ! run_sudo journalctl -u "${SERVICE_NAME}" --no-pager -n 120 >&2; then
+    printf 'warning: failed to read journal for %s\n' "${SERVICE_NAME}" >&2
+  fi
+
+  die "health check failed: ${HEALTH_URL}"
+}
+
+print_summary() {
+  printf '\nDeployed %s:%s\n' "${IMAGE_NAME}" "${deploy_tag}"
+
+  if [[ -n "${rollback_tag}" ]]; then
+    cat <<ROLLBACK
+
+Rollback:
+  sudo docker tag ${IMAGE_NAME}:${rollback_tag} ${IMAGE_NAME}:latest
+  sudo systemctl restart ${SERVICE_NAME}
+ROLLBACK
+  fi
+}
+
+main() {
+  local root
+
+  require_command curl
+  require_command date
+  require_command docker
+  require_command git
+  require_command mktemp
+  require_command systemctl
+
+  root="$(app_root)"
+  cd -- "${root}"
+
+  [[ -f Dockerfile ]] || die "Dockerfile not found in ${root}"
+
+  set_sudo_command
+  set_deploy_tag
+  build_image
+  activate_image
+  restart_service
+  wait_for_health
+  print_summary
+}
+
+trap cleanup EXIT
+main "$@"
