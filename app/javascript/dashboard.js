@@ -37,7 +37,7 @@ function buildCharts() {
 
   const ctx1 = document.getElementById("requestsChart");
   if (ctx1) {
-    const rph = data.requests_per_hour || {};
+    const rph = data.requests_over_time || {};
     charts.requests = new Chart(ctx1, {
       type: "line",
       data: {
@@ -102,4 +102,67 @@ function buildCharts() {
   }
 }
 
-document.addEventListener("turbo:load", buildCharts);
+document.addEventListener("turbo:load", () => {
+  buildCharts();
+  initRangeInput();
+});
+
+// --- Range selector ---------------------------------------------------------
+// Live-updates the dashboard as the user types a custom duration. A bare
+// number means hours; an optional h/d/w unit overrides. Input is validated
+// client-side so invalid strings never reach the server. A debounce keeps
+// rapid typing from firing a visit per keystroke; Enter skips the debounce.
+const RANGE_RE = /^\d+\s*[hdw]?$/i;
+let rangeTimer = null;
+let rangeVisitPending = false;
+
+function initRangeInput() {
+  const input = document.getElementById("range_input");
+  if (!input) return;
+  const error = document.getElementById("range_input_error");
+
+  // After a range-driven navigation, refocus the field so continuous typing
+  // isn't interrupted by the full-page Turbo swap.
+  if (rangeVisitPending) {
+    rangeVisitPending = false;
+    input.focus();
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
+
+  const showError = (msg) => {
+    if (error) {
+      error.textContent = msg;
+      error.classList.toggle("hidden", !msg);
+    }
+    input.classList.toggle("border-red-700", !!msg);
+    input.classList.toggle("focus:border-red-600", !!msg);
+    input.classList.toggle("border-slate-700", !msg);
+    input.classList.toggle("focus:border-emerald-600", !msg);
+  };
+
+  const navigate = (v) => {
+    rangeVisitPending = true;
+    Turbo.visit("/?range=" + encodeURIComponent(v));
+  };
+
+  input.addEventListener("input", () => {
+    const v = input.value.trim();
+    showError("");
+    clearTimeout(rangeTimer);
+    if (v === "") return;
+    if (!RANGE_RE.test(v)) { showError("Use a number + h/d/w (e.g. 17d, 3h)"); return; }
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n) || n <= 0) { showError("Enter a positive number"); return; }
+    if (n > 100000) { showError("Too large"); return; }
+    rangeTimer = setTimeout(() => navigate(v), 500);
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    clearTimeout(rangeTimer);
+    const v = input.value.trim();
+    if (v && RANGE_RE.test(v) && parseInt(v, 10) > 0) navigate(v);
+  });
+}

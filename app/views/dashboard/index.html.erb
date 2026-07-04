@@ -9,11 +9,31 @@
     <%= render "refresh_button", importing: false %>
   </div>
 
+  <div class="flex flex-wrap items-center gap-2">
+    <% [["24h", "24h"], ["7d", "7d"], ["30d", "30d"], ["all", "All Time"]].each do |key, label| %>
+      <% active = @current_range == key %>
+      <%= link_to label, root_path(range: key),
+            class: active ?
+              "px-3 py-1.5 rounded-md text-xs font-medium border border-emerald-600 text-emerald-300 bg-emerald-950/40" :
+              "px-3 py-1.5 rounded-md text-xs font-medium border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-colors" %>
+    <% end %>
+    <div class="flex items-center gap-2 ml-1">
+      <%= text_field_tag :range, @custom_range_value,
+            id: "range_input",
+            placeholder: "custom (e.g. 17d)",
+            autocomplete: "off",
+            spellcheck: false,
+            class: "w-36 rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-emerald-600" %>
+      <span id="range_input_error" class="text-xs text-red-400 hidden"></span>
+    </div>
+    <span class="text-xs text-slate-500 ml-1"><%= @range_label %></span>
+  </div>
+
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <%= stat_card("Total Requests", @total_requests, "text-emerald-400") %>
     <%= stat_card("Total Errors", @total_errors, "text-red-400") %>
     <%= stat_card("Error Rate", "#{@error_rate}%", "text-amber-400") %>
-    <%= stat_card("Unique IPs", AccessLog.distinct.count(:remote_ip), "text-blue-400") %>
+    <%= stat_card("Unique IPs", @unique_ips, "text-blue-400") %>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -111,7 +131,7 @@
 
 <script type="application/json" id="dashboard-data">
 <%= raw json_escape({
-  requests_per_hour: @requests_per_hour.to_h,
+  requests_over_time: @requests_over_time.to_h,
   status_counts: @status_counts.to_h,
   browser_counts: @browser_counts.to_h,
   os_counts: @os_counts.to_h

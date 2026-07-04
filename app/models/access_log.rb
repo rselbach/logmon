@@ -81,20 +81,50 @@ class AccessLog < ApplicationRecord
     group(:method).count.sort_by { |_, count| -count }
   end
 
-  def self.requests_per_hour(hours = 24)
-    now = Time.current
-    from_time = (now - (hours - 1).hours).beginning_of_hour
+  # Request volume over a window, with bucketing chosen by span so labels stay
+  # readable: hourly up to 72h, daily up to a year, monthly beyond that or when
+  # +from+ is nil (all time). Missing buckets are filled with 0 so the chart
+  # shows continuous time even when no requests landed in a slot.
+  def self.requests_over_time(from, to = nil)
+    to ||= Time.current
 
-    counts = where("timestamp >= ?", from_time)
-             .group("strftime('%Y-%m-%d %H:00', timestamp)")
+    if from.nil?
+      earliest = minimum(:timestamp)
+      return {} unless earliest
+      from = earliest.beginning_of_month
+      bucket_expr = "strftime('%Y-%m', timestamp)"
+      bucket_fmt  = "%Y-%m"
+      label_fmt   = "%Y-%m"
+      step = :month
+    elsif (to - from) <= 72.hours
+      from = from.beginning_of_hour
+      bucket_expr = "strftime('%Y-%m-%d %H:00', timestamp)"
+      bucket_fmt  = "%Y-%m-%d %H:00"
+      label_fmt   = "%m-%d %H:%M"
+      step = :hour
+    elsif (to - from) <= 365.days
+      from = from.beginning_of_day
+      bucket_expr = "strftime('%Y-%m-%d', timestamp)"
+      bucket_fmt  = "%Y-%m-%d"
+      label_fmt   = "%m-%d"
+      step = :day
+    else
+      from = from.beginning_of_month
+      bucket_expr = "strftime('%Y-%m', timestamp)"
+      bucket_fmt  = "%Y-%m"
+      label_fmt   = "%Y-%m"
+      step = :month
+    end
+
+    counts = where("timestamp >= ? AND timestamp < ?", from, to)
+             .group(bucket_expr)
              .count
 
     results = {}
-    hours.times do |i|
-      hour_start = (now - (hours - 1 - i).hours).beginning_of_hour
-      key = hour_start.strftime("%H:%M")
-      bucket = hour_start.strftime("%Y-%m-%d %H:00")
-      results[key] = counts[bucket] || 0
+    t = from
+    while t < to
+      results[t.strftime(label_fmt)] = counts[t.strftime(bucket_fmt)] || 0
+      t = t.advance(step => 1)
     end
     results
   end
