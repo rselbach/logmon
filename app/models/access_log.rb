@@ -33,7 +33,7 @@ class AccessLog < ApplicationRecord
   end
 
   def self.top_paths(limit = 10)
-    group(:uri).count.sort_by { |_, count| -count }.first(limit)
+    where.not(uri: [nil, ""]).group(:uri).count.sort_by { |_, count| -count }.first(limit)
   end
 
   def self.top_user_agents(limit = 10)
