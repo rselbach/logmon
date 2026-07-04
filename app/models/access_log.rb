@@ -95,25 +95,25 @@ class AccessLog < ApplicationRecord
       bucket_expr = "strftime('%Y-%m', timestamp)"
       bucket_fmt  = "%Y-%m"
       label_fmt   = "%Y-%m"
-      step = :month
+      step = :months
     elsif (to - from) <= 72.hours
       from = from.beginning_of_hour
       bucket_expr = "strftime('%Y-%m-%d %H:00', timestamp)"
       bucket_fmt  = "%Y-%m-%d %H:00"
       label_fmt   = "%m-%d %H:%M"
-      step = :hour
+      step = :hours
     elsif (to - from) <= 365.days
       from = from.beginning_of_day
       bucket_expr = "strftime('%Y-%m-%d', timestamp)"
       bucket_fmt  = "%Y-%m-%d"
       label_fmt   = "%m-%d"
-      step = :day
+      step = :days
     else
       from = from.beginning_of_month
       bucket_expr = "strftime('%Y-%m', timestamp)"
       bucket_fmt  = "%Y-%m"
       label_fmt   = "%Y-%m"
-      step = :month
+      step = :months
     end
 
     counts = where("timestamp >= ? AND timestamp < ?", from, to)
