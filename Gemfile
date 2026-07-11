@@ -58,4 +58,4 @@ end
 gem "importmap-rails", "~> 2.2"
 gem "turbo-rails", "~> 2.0"
 
-gem "pagy", "~> 43.5"
+gem "pagy", "~> 43.6"

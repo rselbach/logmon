@@ -132,7 +132,7 @@ GEM
     jbuilder (2.15.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
-    json (2.19.9)
+    json (2.20.0)
     kamal (2.12.0)
       activesupport (>= 7.0)
       base64 (~> 0.2)
@@ -194,7 +194,7 @@ GEM
     nokogiri (1.19.4-x86_64-linux-musl)
       racc (~> 1.4)
     ostruct (0.6.3)
-    pagy (43.5.6)
+    pagy (43.6.0)
       json
       uri
       yaml
@@ -385,7 +385,7 @@ DEPENDENCIES
   importmap-rails (~> 2.2)
   jbuilder
   kamal
-  pagy (~> 43.5)
+  pagy (~> 43.6)
   propshaft
   puma (>= 5.0)
   rails (~> 8.1.3)
